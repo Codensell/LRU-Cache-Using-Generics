@@ -11,6 +11,7 @@ type Cache[K comparable, V any] struct {
 	items    map[K]*list.Element
 	capacity int
 }
+
 type entry[K comparable, V any] struct {
 	key   K
 	value V
@@ -60,6 +61,31 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 	}
 	var zero V
 	return zero, false
+}
+
+func (c *Cache[K, V]) Peek(key K) (V, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if el, ok := c.items[key]; ok {
+		kv := el.Value.(entry[K, V])
+		return kv.value, true
+	}
+	var zero V
+	return zero, false
+}
+
+func (c *Cache[K, V]) Delete(key K) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	el, ok := c.items[key]
+	if !ok {
+		return false
+	}
+	delete(c.items, key)
+	c.ll.Remove(el)
+	return true
 }
 
 func (c *Cache[K, V]) Clear() {
